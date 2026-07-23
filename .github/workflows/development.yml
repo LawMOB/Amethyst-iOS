@@ -10,34 +10,48 @@ jobs:
     name: Development build
 
     runs-on: macos-latest
+
     steps:
       - name: Install dependencies
-        run: brew install temurin@8 ldid make
-          
+        run: |
+          brew install temurin@8 ldid make
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          lfs: false
+          submodules: false
 
       - name: Checkout repository submodules
-        run: git submodule update --init --recursive
+        env:
+          GIT_LFS_SKIP_SMUDGE: 1
+        run: |
+          git lfs install --skip-smudge
+          git config --global filter.lfs.smudge "git-lfs smudge --skip -- %f"
+          git config --global filter.lfs.process "git-lfs filter-process --skip"
+
+          git submodule sync --recursive
+          git submodule update --init --recursive
 
       - name: Build
         run: |
           export PATH=/opt/procursus/bin:/opt/homebrew/bin:$PATH
           export SLIMMED=1
+
           gmake -j$(sysctl -n hw.ncpu) package
           gmake -j$(sysctl -n hw.ncpu) package TROLLSTORE_JIT_ENT=1
 
       - name: Upload regular ipa
         uses: actions/upload-artifact@v4
         with:
-          name: org.angelauramc.amethyst-${{ matrix.platform_name }}.ipa
-          path: artifacts/org.angelauramc.amethyst-*-${{ matrix.platform_name }}.ipa
+          name: Amethyst.ipa
+          path: artifacts/org.angelauramc.amethyst-*.ipa
 
-      - name: Upload regular tipa
+      - name: Upload TrollStore tipa
         uses: actions/upload-artifact@v4
         with:
-          name: org.angelauramc.amethyst-${{ matrix.platform_name }}-trollstore.tipa
-          path: artifacts/org.angelauramc.amethyst-*-${{ matrix.platform_name }}-trollstore.tipa
+          name: Amethyst-TrollStore.tipa
+          path: artifacts/org.angelauramc.amethyst-*-trollstore.tipa
 
       - name: Upload jre
         uses: actions/upload-artifact@v4
