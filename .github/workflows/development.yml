@@ -32,6 +32,31 @@ jobs:
 
           git submodule sync --recursive
           git submodule update --init --recursive
+          
+      - name: Debug MobileGL
+        run: |
+          cd Natives/external/MobileGL
+
+          echo "=== git status ==="
+          git status
+
+          echo "=== submodules ==="
+          git submodule status --recursive
+
+          echo "=== 3rdparty ==="
+          ls -la 3rdparty || true
+
+          echo "=== glslang ==="
+          ls -la 3rdparty/glslang || true
+
+          echo "=== SPIRV-Cross ==="
+          ls -la 3rdparty/SPIRV-Cross || true
+
+          echo "=== Vulkan-Headers ==="
+          ls -la 3rdparty/Vulkan-Headers || true
+
+          echo "=== SPIRV-Reflect ==="
+          ls -la 3rdparty/SPIRV-Reflect || true
 
       - name: Build
         run: |
