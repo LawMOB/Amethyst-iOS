@@ -330,8 +330,12 @@ dep_mobilegl:
 		echo 'MobileGL source directory not found: $(MOBILEGL_SOURCE_DIR)'; \
 		exit 1; \
 	fi
-	# Force a deep recursive update of the MobileGL tree to fetch SPIRV-Tools and glslang
+	# Initialize base submodules first
 	git -C $(MOBILEGL_SOURCE_DIR) submodule update --init --recursive --force
+	# Force glslang to fetch its own missing validation tool dependencies directly
+	if [ -d "$(MOBILEGL_SOURCE_DIR)/3rdparty/glslang" ]; then \
+		cd $(MOBILEGL_SOURCE_DIR)/3rdparty/glslang && python3 update_glslang_sources.py; \
+	fi
 	mkdir -p $(WORKINGDIR)/mobilegl
 	cd $(WORKINGDIR)/mobilegl && cmake \
 		-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
@@ -348,6 +352,7 @@ dep_mobilegl:
 		-DMOBILEGL_BUILD_BENCHMARK=OFF \
 		-DMOBILEGL_BUILD_TRACE_REPLAY=OFF \
 		-DMOBILEGL_VULKAN_LIBRARY="$(MOLTENVK_LIBRARY)" \
+		-DENABLE_OPT=OFF \
 		$(MOBILEGL_SOURCE_DIR)
 
 	cmake --build $(WORKINGDIR)/mobilegl --config $(CMAKE_BUILD_TYPE) -j$(JOBS) --target MobileGL
