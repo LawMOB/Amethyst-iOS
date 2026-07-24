@@ -330,6 +330,8 @@ dep_mobilegl:
 		echo 'MobileGL source directory not found: $(MOBILEGL_SOURCE_DIR)'; \
 		exit 1; \
 	fi
+	# Force a deep recursive update of the MobileGL tree to fetch SPIRV-Tools and glslang
+	git -C $(MOBILEGL_SOURCE_DIR) submodule update --init --recursive --force
 	mkdir -p $(WORKINGDIR)/mobilegl
 	cd $(WORKINGDIR)/mobilegl && cmake \
 		-DCMAKE_BUILD_TYPE=$(CMAKE_BUILD_TYPE) \
