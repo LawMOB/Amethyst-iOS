@@ -40,7 +40,7 @@ jobs:
           # Pass the flag to glslang to bypass the missing SPIR-V tools check
           export ENABLE_OPT=0
 
-          gmake -j$(sysctl -n hw.ncpu) package
+          gmake package -j1 VERBOSE=1
           gmake -j$(sysctl -n hw.ncpu) package TROLLSTORE_JIT_ENT=1
 
       - name: Upload regular ipa
