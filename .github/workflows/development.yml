@@ -31,7 +31,8 @@ jobs:
           git config --global filter.lfs.process "git-lfs filter-process --skip"
 
           git submodule sync --recursive
-          git submodule update --init --recursive
+          # Force a deep, targeted initialization of the MobileGL tree to catch nested SPIR-V tools
+          git submodule update --init --recursive --force Natives/external/MobileGL
           
       - name: Debug MobileGL
         run: |
