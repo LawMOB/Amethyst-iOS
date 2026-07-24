@@ -30,6 +30,8 @@ int ptrace(int, pid_t, caddr_t, int);
 #define fm NSFileManager.defaultManager
 extern char** environ;
 
+void handle_fatal_exit(int code);
+
 void printEntitlementAvailability(NSString *key) {
     NSLog(@"* %@: %@", key, getEntitlementValue(key) ? @"YES" : @"NO");
 }
