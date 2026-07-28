@@ -502,13 +502,7 @@ BOOL CallbackBridge_nativeSendCharMods(jchar codepoint, int mods) {
     }
     return NO;
 }
-/*
-JNIEXPORT void JNICALL Java_org_lwjgl_glfw_CallbackBridge_nativeSendCursorEnter(JNIEnv* env, jclass clazz, jint entered) {
-    if (GLFW_invoke_CursorEnter && isInputReady) {
-        GLFW_invoke_CursorEnter(showingWindow, entered);
-    }
-}
-*/
+
 void CallbackBridge_nativeSendCursorPos(char event, CGFloat x, CGFloat y) {
     if (!GLFW_invoke_CursorPos || !isInputReady) return;
 
@@ -631,8 +625,6 @@ void CallbackBridge_nativeSendScreenSize(int width, int height) {
             }
         }
     }
-    
-    // return (isInputReady && (GLFW_invoke_FramebufferSize || GLFW_invoke_WindowSize));
 }
 
 void CallbackBridge_nativeSendScroll(CGFloat xoffset, CGFloat yoffset) {

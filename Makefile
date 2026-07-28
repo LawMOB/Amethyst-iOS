@@ -35,7 +35,6 @@ ifeq (,$(COMMIT))
 BRANCH := unknown
 endif
 
-
 # Team IDs and provisioning profile for the codesign function
 # Default to -1 for check
 # Currently requires a paid Apple Developer account, will fix later
@@ -48,7 +47,6 @@ CMAKE_BUILD_TYPE := Release
 else
 CMAKE_BUILD_TYPE := Debug
 endif
-
 
 # Distinguish iOS from macOS, and *OS from others
 ifeq ($(DETECTPLAT),Darwin)
@@ -111,6 +109,7 @@ POJAV_JRE21_DIR       ?= $(SOURCEDIR)/depends/java-21-openjdk
 POJAV_JRE25_DIR       ?= $(SOURCEDIR)/depends/java-25-openjdk
 MOBILEGL_SOURCE_DIR   ?= $(SOURCEDIR)/Natives/external/MobileGL
 MOLTENVK_LIBRARY      ?= $(SOURCEDIR)/Natives/resources/Frameworks/libMoltenVK.dylib
+SDL_FRAMEWORK_DIR    ?= $(SOURCEDIR)/Natives/resources/Frameworks
 
 # Function to use later for checking dependencies
 METHOD_DEPCHECK   = $(shell $(1) >/dev/null 2>&1 && echo 1)
@@ -132,9 +131,6 @@ METHOD_DIRCHECK   = \
 	fi
 	
 # Function to change the platform on Mach-O files.
-# iOS = 2, tvOS = 3, iOS Simulator = 7, tvOS Simulator = 8, visionOS = 11, visionOS Simulator = 12
-# https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h
-# TODO: Change Info.plist for visionOS 1.0
 METHOD_CHANGE_PLAT = \
 	if [ '$(1)' != '11' ] && [ '$(1)' != '12' ]; then \
 		vtool -arch arm64 -set-build-version $(1) 14.0 16.0 -replace -output $(2) $(2); \
@@ -271,14 +267,15 @@ native: dep_mg
 		-DCMAKE_OSX_SYSROOT="$(SDKPATH)" \
 		-DCMAKE_OSX_ARCHITECTURES=arm64 \
 		-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
-		-DCMAKE_C_FLAGS="-arch arm64" \
+		-DCMAKE_C_FLAGS="-arch arm64 -F$(SDL_FRAMEWORK_DIR)" \
+		-DCMAKE_EXE_LINKER_FLAGS="-F$(SDL_FRAMEWORK_DIR) -framework SDL3" \
+		-DCMAKE_SHARED_LINKER_FLAGS="-F$(SDL_FRAMEWORK_DIR) -framework SDL3" \
 		-DCONFIG_BRANCH="$(BRANCH)" \
 		-DCONFIG_COMMIT="$(COMMIT)" \
 		-DCONFIG_RELEASE=$(RELEASE) \
 		..
 
 	cmake --build $(WORKINGDIR) --config $(CMAKE_BUILD_TYPE) -j$(JOBS)
-	#	--target awt_headless awt_xawt libOSMesaOverride.dylib tinygl4angle AngelAuraAmethyst
 	rm $(WORKINGDIR)/libawt_headless.dylib
 	echo '[Amethyst v$(VERSION)] native - end'
 
@@ -369,8 +366,6 @@ dep_mobilegl:
 	fi
 	install_name_tool -add_rpath @loader_path $(WORKINGDIR)/mobilegl/libMobileGL.dylib
 	cp $(WORKINGDIR)/mobilegl/libMobileGL.dylib $(WORKINGDIR)/libMobileGL.dylib
-	cp $(WORKINGDIR)/mobilegl/libMobileGL.dylib $(WORKINGDIR)/libMobileGL-gles.dylib
-	install_name_tool -id @rpath/libMobileGL-gles.dylib $(WORKINGDIR)/libMobileGL-gles.dylib
 	echo '[Amethyst v$(VERSION)] dep_mobilegl - end'
 
 assets:
@@ -481,7 +476,5 @@ clean:
 	rm -rf JavaApp/build
 	rm -rf $(OUTPUTDIR)
 	echo '[Amethyst v$(VERSION)] clean - end'
-
-		
 
 .PHONY: all clean check native java jre package dsym deploy help
