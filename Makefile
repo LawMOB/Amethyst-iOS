@@ -109,7 +109,6 @@ POJAV_JRE21_DIR       ?= $(SOURCEDIR)/depends/java-21-openjdk
 POJAV_JRE25_DIR       ?= $(SOURCEDIR)/depends/java-25-openjdk
 MOBILEGL_SOURCE_DIR   ?= $(SOURCEDIR)/Natives/external/MobileGL
 MOLTENVK_LIBRARY      ?= $(SOURCEDIR)/Natives/resources/Frameworks/libMoltenVK.dylib
-SDL_FRAMEWORK_DIR    ?= $(SOURCEDIR)/Natives/resources/Frameworks
 
 # Function to use later for checking dependencies
 METHOD_DEPCHECK   = $(shell $(1) >/dev/null 2>&1 && echo 1)
@@ -267,9 +266,7 @@ native: dep_mg
 		-DCMAKE_OSX_SYSROOT="$(SDKPATH)" \
 		-DCMAKE_OSX_ARCHITECTURES=arm64 \
 		-DCMAKE_OSX_DEPLOYMENT_TARGET=14.0 \
-		-DCMAKE_C_FLAGS="-arch arm64 -F$(SDL_FRAMEWORK_DIR)" \
-		-DCMAKE_EXE_LINKER_FLAGS="-F$(SDL_FRAMEWORK_DIR) -framework SDL3" \
-		-DCMAKE_SHARED_LINKER_FLAGS="-F$(SDL_FRAMEWORK_DIR) -framework SDL3" \
+		-DCMAKE_C_FLAGS="-arch arm64" \
 		-DCONFIG_BRANCH="$(BRANCH)" \
 		-DCONFIG_COMMIT="$(COMMIT)" \
 		-DCONFIG_RELEASE=$(RELEASE) \
