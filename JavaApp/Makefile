@@ -42,13 +42,16 @@ $(OUTPUTDIR)/launcher.jar: $(CLASSES) check_empty_classes
 	@$(BOOTJDK)/jar -cf $@ -C $(basename $@) .
 
 # One jar per LWJGL version - each built from only its own vendor folder,
-# so nothing ambiguous ends up on the runtime classpath.
+# so nothing ambiguous ends up on the runtime classpath. Patched classes from
+# src/lwjgl (compiled to $(OUTPUTDIR)/lwjgl) are then overlaid on top so our
+# custom GLFW/etc overrides actually ship instead of the stock vendor ones.
 $(OUTPUTDIR)/lwjgl-3.3.3.jar: $(CLASSES) check_empty_classes
 	@set -e
 	@echo "Creating $@"
 	@mkdir -p $(OUTPUTDIR)/lwjgl_lib_3.3.3
 	@cd $(OUTPUTDIR)/lwjgl_lib_3.3.3 && find ../../libs/lwjgl-3.3.3 -name 'lwjgl*.jar' -exec $(BOOTJDK)/jar -xf {} \;
 	@rm -rf $(OUTPUTDIR)/lwjgl_lib_3.3.3/META-INF
+	@cp -R $(OUTPUTDIR)/lwjgl/. $(OUTPUTDIR)/lwjgl_lib_3.3.3/
 	@$(BOOTJDK)/jar -cf $@ -C $(OUTPUTDIR)/lwjgl_lib_3.3.3 .
 
 $(OUTPUTDIR)/lwjgl-3.4.1.jar: $(CLASSES) check_empty_classes
@@ -57,6 +60,7 @@ $(OUTPUTDIR)/lwjgl-3.4.1.jar: $(CLASSES) check_empty_classes
 	@mkdir -p $(OUTPUTDIR)/lwjgl_lib_3.4.1
 	@cd $(OUTPUTDIR)/lwjgl_lib_3.4.1 && find ../../libs/lwjgl-3.4.1 -name 'lwjgl*.jar' -exec $(BOOTJDK)/jar -xf {} \;
 	@rm -rf $(OUTPUTDIR)/lwjgl_lib_3.4.1/META-INF
+	@cp -R $(OUTPUTDIR)/lwjgl/. $(OUTPUTDIR)/lwjgl_lib_3.4.1/
 	@$(BOOTJDK)/jar -cf $@ -C $(OUTPUTDIR)/lwjgl_lib_3.4.1 .
 
 $(OUTPUTDIR)/patchjna_agent.jar: $(CLASSES)
