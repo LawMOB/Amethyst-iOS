@@ -1447,3 +1447,5 @@ public class GLFW
 
         return Arrays.asList(extensions.split(" "))
             .contains(ext.toString());
+    }
+}
