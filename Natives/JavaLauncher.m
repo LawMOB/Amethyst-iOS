@@ -193,7 +193,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
                 NSArray<NSString *> *components = [versionId componentsSeparatedByString:@"."];
                 if (components.count > 0) {
                     int major = [components[0] intValue];
-                    // If major version is >= 26 (future version scheme), force 3.4.1
+                    // If major version is >= 26 force 3.4.1
                     if (major >= 26) {
                         lwjglFolder = @"lwjgl-3.4.1";
                     }
