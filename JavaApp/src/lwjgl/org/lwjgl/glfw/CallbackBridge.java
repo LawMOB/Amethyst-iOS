@@ -27,6 +27,11 @@ public class CallbackBridge {
     // Native Bridge Declarations
     public static native String nativeClipboard(int action, byte[] copy);
     public static native void nativeSetGrabbing(boolean grab, float xset, float yset);
+    
+    public static void nativeSetGrabbing(boolean grabbing) {
+        nativeSetGrabbing(grabbing, 0.0f, 0.0f);
+    }
+
     public static native boolean nativeIsGrabbing();
     public static native void nativeInitSDL();
     public static native void nativePollSDLEvents();
@@ -53,12 +58,6 @@ public class CallbackBridge {
     public static void sendMouseButton(int button, int action, int mods) {
         if (INPUT_DEBUG_ENABLED) {
             System.out.println("[CallbackBridge] MouseButton event: button=" + button + ", action=" + action + ", mods=" + mods);
-        }
-    }
-
-    public static void sendScroll(double xoffset, double yoffset) {
-        if (INPUT_DEBUG_ENABLED) {
-            System.out.println("[CallbackBridge] Scroll event: xoffset=" + xoffset + ", yoffset=" + yoffset);
         }
     }
 }
