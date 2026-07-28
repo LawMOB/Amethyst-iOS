@@ -526,7 +526,7 @@ public class GLFW
     static {
         try {
             System.load(System.getenv("BUNDLE_PATH") + "/AngelAuraAmethyst");
-} catch (UnsatisfiedLinkError e) {
+        } catch (UnsatisfiedLinkError e) {
             e.printStackTrace();
         }
         String[] size = System.getProperty("glfw.windowSize").split("x");
@@ -563,9 +563,9 @@ public class GLFW
             for (Field thisField : thisFieldArr) {
                 if (thisField.getName().startsWith("GLFW_KEY_")) {
                     mGLFWKeyCodes.put(
-                    (int) thisField.get(null),
-                    thisField.getName().substring(9, 10).toUpperCase() +
-                    thisField.getName().substring(10).replace("_", " ").toLowerCase()
+                        (int) thisField.get(null),
+                        thisField.getName().substring(9, 10).toUpperCase() +
+                        thisField.getName().substring(10).replace("_", " ").toLowerCase()
                     );
                 }
             }
@@ -603,7 +603,6 @@ public class GLFW
     }
 
     private static final SharedLibrary GLFW = new MacOSXLibraryDL("AngelAuraAmethyst", DynamicLinkLoader.RTLD_DEFAULT);
-
 
     /** Contains the function pointers loaded from the glfw {@link SharedLibrary}. */
     public static final class Functions {
@@ -804,6 +803,7 @@ public class GLFW
 
         return lastCallback;
     }
+
     public static GLFWIMEStatusCallback glfwSetIMEStatusCallback(@NativeType("GLFWwindow *") long window, @NativeType("GLFWimestatusfun") @Nullable GLFWIMEStatusCallbackI cbfun) {
         GLFWIMEStatusCallback lastCallback = (GLFWIMEStatusCallback) mGLFWIMEStatusCallback;
         if (cbfun == null) mGLFWIMEStatusCallback = null;
@@ -811,6 +811,7 @@ public class GLFW
 
         return lastCallback;
     }
+
     public static GLFWPreeditCandidateCallback glfwSetPreeditCandidateCallback(@NativeType("GLFWwindow *") long window, @NativeType("GLFWpreeditcandidatefun") @Nullable GLFWPreeditCandidateCallbackI cbfun) {
         GLFWPreeditCandidateCallback lastCallback = (GLFWPreeditCandidateCallback) mGLFWPreeditCandidateCallback;
         if (cbfun == null) mGLFWPreeditCandidateCallback = null;
@@ -832,8 +833,16 @@ public class GLFW
         if (!isGLFWReady) {
             mGLFWInitialTime = (double) System.nanoTime();
             long __functionAddress = Functions.Init;
-            boolean isCalledFromLWJGLX = new Throwable().getStackTrace()[1].getClassName().equals("org.lwjgl.Sys");
+            boolean isCalledFromLWJGLX = new Throwable().getStackTrace()[1]
+                .getClassName()
+                .equals("org.lwjgl.Sys");
+
+            System.out.println("[GLFW] Init pointer = " + __functionAddress);
+            System.out.println("[GLFW] From Sys = " + isCalledFromLWJGLX);
+
             isGLFWReady = invokeI(!isCalledFromLWJGLX, __functionAddress) != 0;
+
+            System.out.println("[GLFW] glfwInit returned " + isGLFWReady);
         }
         return isGLFWReady;
     }
@@ -850,7 +859,8 @@ public class GLFW
     }
 
     public static boolean glfwPlatformSupported(int platform) {
-        return platform == GLFW_PLATFORM_X11;
+        return platform == GLFW_PLATFORM_X11
+            || platform == GLFW_PLATFORM_NULL;
     }
 
     @NativeType("GLFWwindow *")
@@ -977,6 +987,7 @@ public class GLFW
     public static GLFWGammaRamp glfwGetGammaRamp(@NativeType("GLFWmonitor *") long monitor) {
         return mGLFWGammaRamp;
     }
+
     public static void glfwSetGammaRamp(@NativeType("GLFWmonitor *") long monitor, @NativeType("const GLFWgammaramp *") GLFWGammaRamp ramp) {
         mGLFWGammaRamp = ramp;
     }
@@ -1004,7 +1015,8 @@ public class GLFW
     }
 
     public static void glfwSetTime(double time) {
-        mGLFWInitialTime = System.nanoTime() - (long) time;
+        mGLFWInitialTime = System.nanoTime()
+            - (long)(time * 1000000000L);
     }
 
     public static long glfwGetTimerValue() {
@@ -1012,14 +1024,14 @@ public class GLFW
     }
 
     public static long glfwGetTimerFrequency() {
-        // FIXME set correct value!!
-        return 60;
+        return 1000000000L;
     }
 
     // GLFW Window functions
     public static long nglfwCreateContext(long share) {
         return invokePP(share, Functions.CreateContext);
     }
+
     public static long glfwCreateWindow(int width, int height, CharSequence title, long monitor, long share) {
         // Create an ACTUAL EGL context
         long ptr = nglfwCreateContext(share);
@@ -1085,6 +1097,7 @@ public class GLFW
     public static void glfwShowWindow(long window) {
         nglfwSetShowingWindow(window);
     }
+
     public static void glfwWindowHint(int hint, int value) {
         long __functionAddress = Functions.SetWindowHint;
         invokeV(hint, value, __functionAddress);
@@ -1101,10 +1114,10 @@ public class GLFW
         internalGetWindow(window).shouldClose = close;
     }
 
-
     public static void glfwSetWindowTitle(@NativeType("GLFWwindow *") long window, @NativeType("char const *") ByteBuffer title) {
 
     }
+
     public static void glfwSetWindowTitle(@NativeType("GLFWwindow *") long window, @NativeType("char const *") CharSequence title) {
         internalGetWindow(window).title = title;
     }
@@ -1120,7 +1133,7 @@ public class GLFW
         try {
             internalChangeMonitorSize(w, h);
             glfwSetWindowSize(window, mGLFWWindowWidth, mGLFWWindowHeight);
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -1130,14 +1143,13 @@ public class GLFW
     public static void glfwWaitEventsTimeout(double timeout) {
         // Boardwalk: this isn't how you do a frame limiter, but oh well
         // System.out.println("Frame limiter");
-    /*
-        try {
-            Thread.sleep((long)(timeout * 1000));
-        } catch (InterruptedException ie) {
-        }
-    */
+        /*
+            try {
+                Thread.sleep((long)(timeout * 1000));
+            } catch (InterruptedException ie) {
+            }
+        */
         // System.out.println("Out of the frame limiter");
-
     }
 
     public static void glfwPostEmptyEvent() {}
@@ -1158,6 +1170,7 @@ public class GLFW
 
         internalGetWindow(window).inputModes.put(mode, value);
     }
+
     public static String glfwGetKeyName(int key, int scancode) {
         // TODO keyname list from GLFW
         return mGLFWKeyCodes.get(key);
@@ -1177,6 +1190,7 @@ public class GLFW
     public static int glfwGetMouseButton(@NativeType("GLFWwindow *") long window, int button) {
         return 0;
     }
+
     public static void glfwGetCursorPos(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") DoubleBuffer xpos, @Nullable @NativeType("double *") DoubleBuffer ypos) {
         if (CHECKS) {
             checkSafe(xpos, 1);
@@ -1184,7 +1198,6 @@ public class GLFW
         }
         nglfwGetCursorPos(window, xpos, ypos);
     }
-
 
     public static native void nglfwGetCursorPos(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") DoubleBuffer xpos, @Nullable @NativeType("double *") DoubleBuffer ypos);
     public static native void nglfwGetCursorPosA(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") double[] xpos, @Nullable @NativeType("double *") double[] ypos);
@@ -1199,9 +1212,11 @@ public class GLFW
     public static long glfwCreateCursor(@NativeType("const GLFWimage *") GLFWImage image, int xhot, int yhot) {
         return 4L;
     }
+
     public static long glfwCreateStandardCursor(int shape) {
         return 4L;
     }
+
     public static void glfwDestroyCursor(@NativeType("GLFWcursor *") long cursor) {}
     public static void glfwSetCursor(@NativeType("GLFWwindow *") long window, @NativeType("GLFWcursor *") long cursor) {}
 
@@ -1228,48 +1243,59 @@ public class GLFW
     }
 
     public static boolean glfwJoystickPresent(int jid) {
-        if(jid == 0) {
+        if (jid == 0) {
             return true;
-        }else return false;
+        } else return false;
     }
+
     public static String glfwGetJoystickName(int jid) {
-        if(jid == 0) {
+        if (jid == 0) {
             return "AIC event bus controller";
-        }else return null;
+        } else return null;
     }
+
     public static FloatBuffer glfwGetJoystickAxes(int jid) {
-        if(jid == 0) {
+        if (jid == 0) {
             return joystickData;
-        }else return null;
+        } else return null;
     }
+
     public static ByteBuffer glfwGetJoystickButtons(int jid) {
-        if(jid == 0) {
+        if (jid == 0) {
             return buttonData;
-        }else return null;
+        } else return null;
     }
+
     public static ByteBuffer glfwGetjoystickHats(int jid) {
         return null;
     }
+
     public static boolean glfwJoystickIsGamepad(int jid) {
-        if(jid == 0) return true;
+        if (jid == 0) return true;
         else return false;
     }
+
     public static String glfwGetJoystickGUID(int jid) {
-        if(jid == 0) return "aio0";
+        if (jid == 0) return "aio0";
         else return null;
     }
+
     public static long glfwGetJoystickUserPointer(int jid) {
         return 0;
     }
+
     public static void glfwSetJoystickUserPointer(int jid, long pointer) {
 
     }
+
     public static boolean glfwUpdateGamepadMappings(ByteBuffer string) {
         return false;
     }
+
     public static String glfwGetGamepadName(int jid) {
         return "Unknown";
     }
+
     public static boolean glfwGetGamepadState(int jid, GLFWGamepadState state) {
         return false;
     }
@@ -1413,6 +1439,11 @@ public class GLFW
     public static boolean glfwExtensionSupported(@NativeType("char const *") CharSequence ext) {
         //return Arrays.stream(glGetString(GL_EXTENSIONS).split(" ")).anyMatch(ext::equals);
         // Fast path, but will return true if one has the same prefix
-        return glGetString(GL_EXTENSIONS).contains(ext);
-    }
-}
+        String extensions = glGetString(GL_EXTENSIONS);
+
+        if (extensions == null) {
+            return false;
+        }
+
+        return Arrays.asList(extensions.split(" "))
+            .contains(ext.toString());
