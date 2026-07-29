@@ -18,7 +18,7 @@ import org.lwjgl.*;
 import org.lwjgl.system.*;
 import org.lwjgl.system.macosx.*;
 
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL20.*;
 import static org.lwjgl.system.APIUtil.*;
 import static org.lwjgl.system.Checks.*;
 import static org.lwjgl.system.JNI.*;
@@ -39,7 +39,7 @@ public class GLFW
     public static final int GLFW_VERSION_MINOR = 4;
 
     /** The revision number of the GLFW library. This is incremented when a bug fix release is made that does not contain any API changes. */
-    public static final int GLFW_VERSION_REVISION = 0;
+    public static final int GLFW_VERSION_REVISION = 1;
 
     /** Boolean values. */
     public static final int
@@ -316,20 +316,17 @@ public class GLFW
 
     /** Input options. */
     public static final int
-    GLFW_CURSOR                  = 0x33001,
-    GLFW_STICKY_KEYS             = 0x33002,
-    GLFW_STICKY_MOUSE_BUTTONS    = 0x33003,
-    GLFW_LOCK_KEY_MODS           = 0x33004,
-    GLFW_RAW_MOUSE_MOTION        = 0x33005,
-    GLFW_UNLIMITED_MOUSE_BUTTONS = 0x33006,
-    GLFW_IME                     = 0x33007;
+    GLFW_CURSOR               = 0x33001,
+    GLFW_STICKY_KEYS          = 0x33002,
+    GLFW_STICKY_MOUSE_BUTTONS = 0x33003,
+    GLFW_LOCK_KEY_MODS        = 0x33004,
+    GLFW_RAW_MOUSE_MOTION     = 0x33005;
 
     /** Cursor state. */
     public static final int
     GLFW_CURSOR_NORMAL   = 0x34001,
     GLFW_CURSOR_HIDDEN   = 0x34002,
-    GLFW_CURSOR_DISABLED = 0x34003,
-    GLFW_CURSOR_CAPTURED = 0x34004;
+    GLFW_CURSOR_DISABLED = 0x34003;
 
     /** The regular arrow cursor shape. */
     public static final int GLFW_ARROW_CURSOR = 0x36001;
@@ -502,14 +499,6 @@ public class GLFW
     /* volatile */ public static GLFWWindowRefreshCallback mGLFWWindowRefreshCallback;
     /* volatile */ public static GLFWWindowSizeCallback mGLFWWindowSizeCallback;
 
-    // NOTE: these three fields are intentionally typed as Object, not their real
-    // LWJGL 3.4.1 callback types (GLFWPreeditCallback/GLFWIMEStatusCallback/
-    // GLFWPreeditCandidateCallback). Those types don't exist in LWJGL 3.3.3's
-    // vendor jar (used by Minecraft 1.21.11 and below)
-    public static Object mGLFWPreeditCallback;
-    public static Object mGLFWIMEStatusCallback;
-    public static Object mGLFWPreeditCandidateCallback;
-
     volatile public static int mGLFWWindowWidth, mGLFWWindowHeight;
 
     private static GLFWGammaRamp mGLFWGammaRamp;
@@ -537,14 +526,7 @@ public class GLFW
         // CallbackBridge.receiveCallback(CallbackBridge.EVENT_TYPE_FRAMEBUFFER_SIZE, mGLFWWindowWidth, mGLFWWindowHeight, 0, 0);
         // CallbackBridge.receiveCallback(CallbackBridge.EVENT_TYPE_WINDOW_SIZE, mGLFWWindowWidth, mGLFWWindowHeight, 0, 0);
 
-        try {
-            mGLFWErrorCallback = GLFWErrorCallback.createPrint();
-        } catch (Throwable t) {
-            // GLFWErrorCallback.createPrint() creates a LWJGL native Callback,
-            // Which needs libffi and that isnt included
-            t.printStackTrace();
-            mGLFWErrorCallback = null;
-        }
+        mGLFWErrorCallback = GLFWErrorCallback.createPrint();
         mGLFWKeyCodes = new ArrayMap<>();
 
         mGLFWWindowMap = new ArrayMap<>();
@@ -563,14 +545,22 @@ public class GLFW
             for (Field thisField : thisFieldArr) {
                 if (thisField.getName().startsWith("GLFW_KEY_")) {
                     mGLFWKeyCodes.put(
-                        (int) thisField.get(null),
-                        thisField.getName().substring(9, 10).toUpperCase() +
-                        thisField.getName().substring(10).replace("_", " ").toLowerCase()
+                    (int) thisField.get(null),
+                    thisField.getName().substring(9, 10).toUpperCase() +
+                    thisField.getName().substring(10).replace("_", " ").toLowerCase()
                     );
                 }
             }
         } catch (IllegalAccessException e) {
             // This will never happen since this is accessing itself
+        }
+
+        // Initialize native GLFW bridge now that GLFW class is fully loaded
+        // This ensures JNI_OnLoadGLFW_lazy runs with the class available
+        try {
+            nativeInitGLFWBridge();
+        } catch (Throwable t) {
+            System.err.println("[GLFW] nativeInitGLFWBridge failed: " + t);
         }
     }
 
@@ -585,6 +575,7 @@ public class GLFW
     private static native long nglfwSetWindowSizeCallback(long window, long ptr);
     // private static native void nglfwSetInputReady();
     private static native void nglfwSetShowingWindow(long window);
+    private static native void nativeInitGLFWBridge();
 
     /*
      private static void priGlfwSetError(int error) {
@@ -603,6 +594,7 @@ public class GLFW
     }
 
     private static final SharedLibrary GLFW = new MacOSXLibraryDL("AngelAuraAmethyst", DynamicLinkLoader.RTLD_DEFAULT);
+
 
     /** Contains the function pointers loaded from the glfw {@link SharedLibrary}. */
     public static final class Functions {
@@ -680,35 +672,15 @@ public class GLFW
     public static GLFWDropCallback glfwSetDropCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWdropfun") GLFWDropCallbackI cbfun) {
         GLFWDropCallback lastCallback = mGLFWDropCallback;
         if (cbfun == null) mGLFWDropCallback = null;
-        else {
-            try {
-                mGLFWDropCallback = GLFWDropCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWDropCallback = null;
-            }
-        }
+        else mGLFWDropCallback = GLFWDropCallback.create(cbfun);
 
         return lastCallback;
     }
 
     public static GLFWErrorCallback glfwSetErrorCallback(@Nullable @NativeType("GLFWerrorfun") GLFWErrorCallbackI cbfun) {
         GLFWErrorCallback lastCallback = mGLFWErrorCallback;
-        if (cbfun == null) {
-            mGLFWErrorCallback = null;
-        } else {
-            try {
-                mGLFWErrorCallback = GLFWErrorCallback.create(cbfun);
-            } catch (Throwable t) {
-                // Same root cause as the static init block above: GLFWErrorCallback.create()
-                // builds a native LWJGL Callback, which needs libffi and that isn't included.
-                // Degrade gracefully instead of crashing render backend init.
-                t.printStackTrace();
-                mGLFWErrorCallback = null;
-            }
-        }
+        if (cbfun == null) mGLFWErrorCallback = null;
+        else mGLFWErrorCallback = GLFWErrorCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -724,16 +696,7 @@ public class GLFW
     public static GLFWJoystickCallback glfwSetJoystickCallback(/* @NativeType("GLFWwindow *") long window, */ @Nullable @NativeType("GLFWjoystickfun") GLFWJoystickCallbackI cbfun) {
         GLFWJoystickCallback lastCallback = mGLFWJoystickCallback;
         if (cbfun == null) mGLFWJoystickCallback = null;
-        else {
-            try {
-                mGLFWJoystickCallback = GLFWJoystickCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWJoystickCallback = null;
-            }
-        }
+        else mGLFWJoystickCallback = GLFWJoystickCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -749,16 +712,7 @@ public class GLFW
     public static GLFWMonitorCallback glfwSetMonitorCallback(@Nullable @NativeType("GLFWmonitorfun") GLFWMonitorCallbackI cbfun) {
         GLFWMonitorCallback lastCallback = mGLFWMonitorCallback;
         if (cbfun == null) mGLFWMonitorCallback = null;
-        else {
-            try {
-                mGLFWMonitorCallback = GLFWMonitorCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWMonitorCallback = null;
-            }
-        }
+        else mGLFWMonitorCallback = GLFWMonitorCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -782,16 +736,7 @@ public class GLFW
     public static GLFWWindowCloseCallback glfwSetWindowCloseCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowclosefun") GLFWWindowCloseCallbackI cbfun) {
         GLFWWindowCloseCallback lastCallback = mGLFWWindowCloseCallback;
         if (cbfun == null) mGLFWWindowCloseCallback = null;
-        else {
-            try {
-                mGLFWWindowCloseCallback = GLFWWindowCloseCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowCloseCallback = null;
-            }
-        }
+        else mGLFWWindowCloseCallback = GLFWWindowCloseCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -799,16 +744,7 @@ public class GLFW
     public static GLFWWindowContentScaleCallback glfwSetWindowContentScaleCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowcontentscalefun") GLFWWindowContentScaleCallbackI cbfun) {
         GLFWWindowContentScaleCallback lastCallback = mGLFWWindowContentScaleCallback;
         if (cbfun == null) mGLFWWindowContentScaleCallback = null;
-        else {
-            try {
-                mGLFWWindowContentScaleCallback = GLFWWindowContentScaleCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowContentScaleCallback = null;
-            }
-        }
+        else mGLFWWindowContentScaleCallback = GLFWWindowContentScaleCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -816,32 +752,14 @@ public class GLFW
     public static GLFWWindowFocusCallback glfwSetWindowFocusCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowfocusfun") GLFWWindowFocusCallbackI cbfun) {
         GLFWWindowFocusCallback lastCallback = mGLFWWindowFocusCallback;
         if (cbfun == null) mGLFWWindowFocusCallback = null;
-        else {
-            try {
-                mGLFWWindowFocusCallback = GLFWWindowFocusCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowFocusCallback = null;
-            }
-        }
+        else mGLFWWindowFocusCallback = GLFWWindowFocusCallback.create(cbfun);
         return lastCallback;
     }
 
     public static GLFWWindowIconifyCallback glfwSetWindowIconifyCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowiconifyfun") GLFWWindowIconifyCallbackI cbfun) {
         GLFWWindowIconifyCallback lastCallback = mGLFWWindowIconifyCallback;
         if (cbfun == null) mGLFWWindowIconifyCallback = null;
-        else {
-            try {
-                mGLFWWindowIconifyCallback = GLFWWindowIconifyCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowIconifyCallback = null;
-            }
-        }
+        else mGLFWWindowIconifyCallback = GLFWWindowIconifyCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -849,16 +767,7 @@ public class GLFW
     public static GLFWWindowMaximizeCallback glfwSetWindowMaximizeCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowmaximizefun") GLFWWindowMaximizeCallbackI cbfun) {
         GLFWWindowMaximizeCallback lastCallback = mGLFWWindowMaximizeCallback;
         if (cbfun == null) mGLFWWindowMaximizeCallback = null;
-        else {
-            try {
-                mGLFWWindowMaximizeCallback = GLFWWindowMaximizeCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowMaximizeCallback = null;
-            }
-        }
+        else mGLFWWindowMaximizeCallback = GLFWWindowMaximizeCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -866,16 +775,7 @@ public class GLFW
     public static GLFWWindowPosCallback glfwSetWindowPosCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowposfun") GLFWWindowPosCallbackI cbfun) {
         GLFWWindowPosCallback lastCallback = mGLFWWindowPosCallback;
         if (cbfun == null) mGLFWWindowPosCallback = null;
-        else {
-            try {
-                mGLFWWindowPosCallback = GLFWWindowPosCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowPosCallback = null;
-            }
-        }
+        else mGLFWWindowPosCallback = GLFWWindowPosCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -883,67 +783,7 @@ public class GLFW
     public static GLFWWindowRefreshCallback glfwSetWindowRefreshCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWwindowrefreshfun") GLFWWindowRefreshCallbackI cbfun) {
         GLFWWindowRefreshCallback lastCallback = mGLFWWindowRefreshCallback;
         if (cbfun == null) mGLFWWindowRefreshCallback = null;
-        else {
-            try {
-                mGLFWWindowRefreshCallback = GLFWWindowRefreshCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWWindowRefreshCallback = null;
-            }
-        }
-
-        return lastCallback;
-    }
-
-    public static GLFWPreeditCallback glfwSetPreeditCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWpreeditfun") GLFWPreeditCallbackI cbfun) {
-        GLFWPreeditCallback lastCallback = (GLFWPreeditCallback) mGLFWPreeditCallback;
-        if (cbfun == null) mGLFWPreeditCallback = null;
-        else {
-            try {
-                mGLFWPreeditCallback = GLFWPreeditCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWPreeditCallback = null;
-            }
-        }
-
-        return lastCallback;
-    }
-
-    public static GLFWIMEStatusCallback glfwSetIMEStatusCallback(@NativeType("GLFWwindow *") long window, @NativeType("GLFWimestatusfun") @Nullable GLFWIMEStatusCallbackI cbfun) {
-        GLFWIMEStatusCallback lastCallback = (GLFWIMEStatusCallback) mGLFWIMEStatusCallback;
-        if (cbfun == null) mGLFWIMEStatusCallback = null;
-        else {
-            try {
-                mGLFWIMEStatusCallback = GLFWIMEStatusCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWIMEStatusCallback = null;
-            }
-        }
-
-        return lastCallback;
-    }
-
-    public static GLFWPreeditCandidateCallback glfwSetPreeditCandidateCallback(@NativeType("GLFWwindow *") long window, @NativeType("GLFWpreeditcandidatefun") @Nullable GLFWPreeditCandidateCallbackI cbfun) {
-        GLFWPreeditCandidateCallback lastCallback = (GLFWPreeditCandidateCallback) mGLFWPreeditCandidateCallback;
-        if (cbfun == null) mGLFWPreeditCandidateCallback = null;
-        else {
-            try {
-                mGLFWPreeditCandidateCallback = GLFWPreeditCandidateCallback.create(cbfun);
-            } catch (Throwable t) {
-                // See glfwSetErrorCallback / static init block above: needs libffi,
-                // which isn't included. Degrade gracefully instead of crashing.
-                t.printStackTrace();
-                mGLFWPreeditCandidateCallback = null;
-            }
-        }
+        else mGLFWWindowRefreshCallback = GLFWWindowRefreshCallback.create(cbfun);
 
         return lastCallback;
     }
@@ -956,21 +796,18 @@ public class GLFW
         return lastCallback;
     }
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static GLFWIMEStatusCallback glfwSetIMEStatusCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWimestatusfun") GLFWIMEStatusCallbackI cbfun) {
+        return null;
+    }
+
     static boolean isGLFWReady;
     public static boolean glfwInit() {
         if (!isGLFWReady) {
             mGLFWInitialTime = (double) System.nanoTime();
             long __functionAddress = Functions.Init;
-            boolean isCalledFromLWJGLX = new Throwable().getStackTrace()[1]
-                .getClassName()
-                .equals("org.lwjgl.Sys");
-
-            System.out.println("[GLFW] Init pointer = " + __functionAddress);
-            System.out.println("[GLFW] From Sys = " + isCalledFromLWJGLX);
-
+            boolean isCalledFromLWJGLX = new Throwable().getStackTrace()[1].getClassName().equals("org.lwjgl.Sys");
             isGLFWReady = invokeI(!isCalledFromLWJGLX, __functionAddress) != 0;
-
-            System.out.println("[GLFW] glfwInit returned " + isGLFWReady);
         }
         return isGLFWReady;
     }
@@ -987,8 +824,12 @@ public class GLFW
     }
 
     public static boolean glfwPlatformSupported(int platform) {
-        return platform == GLFW_PLATFORM_X11
-            || platform == GLFW_PLATFORM_NULL;
+        return platform == GLFW_PLATFORM_NULL;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public static GLFWPreeditCallback glfwSetPreeditCallback(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("GLFWpreeditfun") GLFWPreeditCallbackI cbfun) {
+        return null;
     }
 
     @NativeType("GLFWwindow *")
@@ -1024,6 +865,11 @@ public class GLFW
         return 1L;
     }
 
+    public static String glfwGetMonitorName(long monitor) {
+        return "iOS Display";
+    }
+
+
     public static void glfwGetMonitorPos(@NativeType("GLFWmonitor *") long monitor, @Nullable @NativeType("int *") IntBuffer xpos, @Nullable @NativeType("int *") IntBuffer ypos) {
         if (CHECKS) {
             checkSafe(xpos, 1);
@@ -1046,12 +892,6 @@ public class GLFW
         ypos.put(0);
         width.put(mGLFWWindowWidth);
         height.put(mGLFWWindowHeight);
-    }
-
-    @Nullable
-    @NativeType("char const *")
-    public static String glfwGetMonitorName(@NativeType("GLFWmonitor *") long monitor) {
-        return String.format(Locale.US, "iOS Display (%dx%d)", mGLFWWindowWidth, mGLFWWindowHeight);
     }
 
     @NativeType("GLFWmonitor *")
@@ -1115,7 +955,6 @@ public class GLFW
     public static GLFWGammaRamp glfwGetGammaRamp(@NativeType("GLFWmonitor *") long monitor) {
         return mGLFWGammaRamp;
     }
-
     public static void glfwSetGammaRamp(@NativeType("GLFWmonitor *") long monitor, @NativeType("const GLFWgammaramp *") GLFWGammaRamp ramp) {
         mGLFWGammaRamp = ramp;
     }
@@ -1143,8 +982,7 @@ public class GLFW
     }
 
     public static void glfwSetTime(double time) {
-        mGLFWInitialTime = System.nanoTime()
-            - (long)(time * 1000000000L);
+        mGLFWInitialTime = System.nanoTime() - (long) time;
     }
 
     public static long glfwGetTimerValue() {
@@ -1152,14 +990,14 @@ public class GLFW
     }
 
     public static long glfwGetTimerFrequency() {
-        return 1000000000L;
+        // FIXME set correct value!!
+        return 60;
     }
 
     // GLFW Window functions
     public static long nglfwCreateContext(long share) {
         return invokePP(share, Functions.CreateContext);
     }
-
     public static long glfwCreateWindow(int width, int height, CharSequence title, long monitor, long share) {
         // Create an ACTUAL EGL context
         long ptr = nglfwCreateContext(share);
@@ -1174,11 +1012,6 @@ public class GLFW
 
         win.windowAttribs.put(GLFW_HOVERED, 1);
         win.windowAttribs.put(GLFW_VISIBLE, 1);
-        win.windowAttribs.put(GLFW_RESIZABLE, GLFW_FALSE);
-        win.inputModes.put(GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-        win.inputModes.put(GLFW_STICKY_KEYS, GLFW_FALSE);
-        win.inputModes.put(GLFW_STICKY_MOUSE_BUTTONS, GLFW_FALSE);
-        win.inputModes.put(GLFW_IME, GLFW_FALSE);
 
         mGLFWWindowMap.put(ptr, win);
         mainContext = ptr;
@@ -1225,7 +1058,6 @@ public class GLFW
     public static void glfwShowWindow(long window) {
         nglfwSetShowingWindow(window);
     }
-
     public static void glfwWindowHint(int hint, int value) {
         long __functionAddress = Functions.SetWindowHint;
         invokeV(hint, value, __functionAddress);
@@ -1242,10 +1074,10 @@ public class GLFW
         internalGetWindow(window).shouldClose = close;
     }
 
+
     public static void glfwSetWindowTitle(@NativeType("GLFWwindow *") long window, @NativeType("char const *") ByteBuffer title) {
 
     }
-
     public static void glfwSetWindowTitle(@NativeType("GLFWwindow *") long window, @NativeType("char const *") CharSequence title) {
         internalGetWindow(window).title = title;
     }
@@ -1261,7 +1093,7 @@ public class GLFW
         try {
             internalChangeMonitorSize(w, h);
             glfwSetWindowSize(window, mGLFWWindowWidth, mGLFWWindowHeight);
-        } catch (Exception e) {
+        }catch (Exception e) {
             e.printStackTrace();
         }
     }
@@ -1271,25 +1103,27 @@ public class GLFW
     public static void glfwWaitEventsTimeout(double timeout) {
         // Boardwalk: this isn't how you do a frame limiter, but oh well
         // System.out.println("Frame limiter");
-        /*
-            try {
-                Thread.sleep((long)(timeout * 1000));
-            } catch (InterruptedException ie) {
-            }
-        */
+    /*
+        try {
+            Thread.sleep((long)(timeout * 1000));
+        } catch (InterruptedException ie) {
+        }
+    */
         // System.out.println("Out of the frame limiter");
+
     }
 
     public static void glfwPostEmptyEvent() {}
 
     public static int glfwGetInputMode(@NativeType("GLFWwindow *") long window, int mode) {
-        return internalGetWindow(window).inputModes.get(mode);
+        return internalGetWindow(window).inputModes.getOrDefault(mode, 0);
     }
 
     public static void glfwSetInputMode(@NativeType("GLFWwindow *") long window, int mode, int value) {
         if (mode == GLFW_CURSOR) {
             switch (value) {
                 case GLFW_CURSOR_DISABLED:
+                    net.kdt.pojavlaunch.uikit.UIKit.updateMCGuiScale();
                     CallbackBridge.nativeSetGrabbing(true);
                     break;
                 default: CallbackBridge.nativeSetGrabbing(false);
@@ -1298,7 +1132,6 @@ public class GLFW
 
         internalGetWindow(window).inputModes.put(mode, value);
     }
-
     public static String glfwGetKeyName(int key, int scancode) {
         // TODO keyname list from GLFW
         return mGLFWKeyCodes.get(key);
@@ -1309,16 +1142,12 @@ public class GLFW
     }
 
     public static int glfwGetKey(@NativeType("GLFWwindow *") long window, int key) {
-        if (key == GLFW_KEY_LAST) {
-            return GLFW_KEY_LAST;
-        }
         return keyDownBuffer.get(Math.max(0, key-31));
     }
 
     public static int glfwGetMouseButton(@NativeType("GLFWwindow *") long window, int button) {
         return 0;
     }
-
     public static void glfwGetCursorPos(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") DoubleBuffer xpos, @Nullable @NativeType("double *") DoubleBuffer ypos) {
         if (CHECKS) {
             checkSafe(xpos, 1);
@@ -1326,6 +1155,7 @@ public class GLFW
         }
         nglfwGetCursorPos(window, xpos, ypos);
     }
+
 
     public static native void nglfwGetCursorPos(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") DoubleBuffer xpos, @Nullable @NativeType("double *") DoubleBuffer ypos);
     public static native void nglfwGetCursorPosA(@NativeType("GLFWwindow *") long window, @Nullable @NativeType("double *") double[] xpos, @Nullable @NativeType("double *") double[] ypos);
@@ -1340,11 +1170,9 @@ public class GLFW
     public static long glfwCreateCursor(@NativeType("const GLFWimage *") GLFWImage image, int xhot, int yhot) {
         return 4L;
     }
-
     public static long glfwCreateStandardCursor(int shape) {
         return 4L;
     }
-
     public static void glfwDestroyCursor(@NativeType("GLFWcursor *") long cursor) {}
     public static void glfwSetCursor(@NativeType("GLFWwindow *") long window, @NativeType("GLFWcursor *") long cursor) {}
 
@@ -1371,59 +1199,48 @@ public class GLFW
     }
 
     public static boolean glfwJoystickPresent(int jid) {
-        if (jid == 0) {
+        if(jid == 0) {
             return true;
-        } else return false;
+        }else return false;
     }
-
     public static String glfwGetJoystickName(int jid) {
-        if (jid == 0) {
+        if(jid == 0) {
             return "AIC event bus controller";
-        } else return null;
+        }else return null;
     }
-
     public static FloatBuffer glfwGetJoystickAxes(int jid) {
-        if (jid == 0) {
+        if(jid == 0) {
             return joystickData;
-        } else return null;
+        }else return null;
     }
-
     public static ByteBuffer glfwGetJoystickButtons(int jid) {
-        if (jid == 0) {
+        if(jid == 0) {
             return buttonData;
-        } else return null;
+        }else return null;
     }
-
     public static ByteBuffer glfwGetjoystickHats(int jid) {
         return null;
     }
-
     public static boolean glfwJoystickIsGamepad(int jid) {
-        if (jid == 0) return true;
+        if(jid == 0) return true;
         else return false;
     }
-
     public static String glfwGetJoystickGUID(int jid) {
-        if (jid == 0) return "aio0";
+        if(jid == 0) return "aio0";
         else return null;
     }
-
     public static long glfwGetJoystickUserPointer(int jid) {
         return 0;
     }
-
     public static void glfwSetJoystickUserPointer(int jid, long pointer) {
 
     }
-
     public static boolean glfwUpdateGamepadMappings(ByteBuffer string) {
         return false;
     }
-
     public static String glfwGetGamepadName(int jid) {
         return "Unknown";
     }
-
     public static boolean glfwGetGamepadState(int jid, GLFWGamepadState state) {
         return false;
     }
@@ -1567,13 +1384,6 @@ public class GLFW
     public static boolean glfwExtensionSupported(@NativeType("char const *") CharSequence ext) {
         //return Arrays.stream(glGetString(GL_EXTENSIONS).split(" ")).anyMatch(ext::equals);
         // Fast path, but will return true if one has the same prefix
-        String extensions = glGetString(GL_EXTENSIONS);
-
-        if (extensions == null) {
-            return false;
-        }
-
-        return Arrays.asList(extensions.split(" "))
-            .contains(ext.toString());
+        return glGetString(GL_EXTENSIONS).contains(ext);
     }
 }
