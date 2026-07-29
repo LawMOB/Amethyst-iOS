@@ -48,13 +48,25 @@ public abstract class GLFWErrorCallback extends Callback implements GLFWErrorCal
      * @return the new {@code GLFWErrorCallback}
      */
     public static GLFWErrorCallback create(long functionPointer) {
-        GLFWErrorCallbackI instance = Callback.get(functionPointer);
-        return instance instanceof GLFWErrorCallback
-            ? (GLFWErrorCallback) instance
+        GLFWErrorCallbackI instance;
+        try {
+            instance = Callback.get(functionPointer);
+        } catch (Throwable t) {
+            // Callback.get() also touches Upcalls/libffi internally. This path
+            // isn't expected to be hit in this shim (nothing hands out real
+            // native error-callback pointers here), but guard it anyway.
+            t.printStackTrace();
+            instance = null;
+        }
+        final GLFWErrorCallbackI delegate = instance;
+        return delegate instanceof GLFWErrorCallback
+            ? (GLFWErrorCallback) delegate
             : new GLFWErrorCallback(functionPointer) {
                 @Override
                 public void invoke(int error, long description) {
-                    instance.invoke(error, description);
+                    if (delegate != null) {
+                        delegate.invoke(error, description);
+                    }
                 }
             };
     }
@@ -87,6 +99,18 @@ public abstract class GLFWErrorCallback extends Callback implements GLFWErrorCal
 
     GLFWErrorCallback(long functionPointer) {
         super(functionPointer);
+    }
+
+    /**
+     * No real native closure was ever allocated (dummy address, never a genuine
+     * libffi upcall trampoline), so there's nothing to free. The inherited
+     * Callback.free() unconditionally calls into Upcalls/libffi regardless of
+     * how the object was constructed, which would crash the same way creation
+     * did. Overriding to a no-op is correct, not a workaround: it accurately
+     * reflects that this object holds no native resource.
+     */
+    @Override
+    public void free() {
     }
 
     /**
