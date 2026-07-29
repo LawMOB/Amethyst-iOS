@@ -226,13 +226,6 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             [PLProfiles resolveKeyForCurrentProfile:@"gameDir"]]
             .stringByStandardizingPath;
 
-        // MinecraftOptionUtils.optionsPath was never being set anywhere, which
-        // meant the first call to -load (triggered via updateMCGuiScale, which
-        // fires from nativeSetGrabbing the moment the player grabs the mouse in
-        // a world) hit an assertion failure: 'optionsPath is not set'.
-        // windowWidth/windowHeight are already valid here since
-        // SurfaceViewController's updateSavedResolution runs synchronously in
-        // viewDidLoad, before launchMinecraft dispatches to this background queue.
         [MinecraftOptionUtils setupOptionsAtGameDir:gameDir];
     } else {
         defaultJRETag = @"execute_jar";
