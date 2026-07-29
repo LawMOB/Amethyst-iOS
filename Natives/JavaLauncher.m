@@ -400,21 +400,38 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     init_loadCustomJvmFlags(&margc, (const char **)margv);
     NSLog(@"[Init] Found JLI lib");
 
-    NSString *classpath = [NSString stringWithFormat:@"%@/*:%@/%@/*", librariesPath, librariesPath, lwjglFolder];
-if (launchJar) {
-    classpath = [classpath stringByAppendingFormat:@":%@", launchTarget];
-}
+    // Build the classpath explicitly: every jar in libs/ EXCEPT the version-specific
+    // lwjgl-3.x.x.jar files, then append only the single lwjgl jar matching the
+    // version we actually selected. Both lwjgl jars are copied flat into libs/ (no
+    // real libs/lwjgl-3.3.3/ subfolder exists - confirmed via the debug log below),
+    // so a plain libs/* wildcard was always grabbing both versions at once
+    // regardless of lwjglFolder.
+    NSMutableString *classpath = [NSMutableString string];
+    NSArray *libJars = [fm contentsOfDirectoryAtPath:librariesPath error:nil];
+    for (NSString *jarFile in libJars) {
+        if (![jarFile hasSuffix:@".jar"]) continue;
+        if ([jarFile hasPrefix:@"lwjgl-3."]) continue; // skip both versioned lwjgl jars here
+        [classpath appendFormat:@"%@/%@:", librariesPath, jarFile];
+    }
+    [classpath appendFormat:@"%@/%@.jar", librariesPath, lwjglFolder];
+    if (launchJar) {
+        [classpath appendFormat:@":%@", launchTarget];
+    }
 
-NSLog(@"[JavaLauncher][DEBUG] classpath = %@", classpath);
-NSLog(@"[JavaLauncher][DEBUG] librariesPath = %@", librariesPath);
-NSArray *topLevelJars = [fm contentsOfDirectoryAtPath:librariesPath error:nil];
-NSLog(@"[JavaLauncher][DEBUG] top-level libs/ contents: %@", topLevelJars);
-NSString *lwjglSubPath = [NSString stringWithFormat:@"%@/%@", librariesPath, lwjglFolder];
-NSArray *lwjglJars = [fm contentsOfDirectoryAtPath:lwjglSubPath error:nil];
-NSLog(@"[JavaLauncher][DEBUG] %@ contents: %@", lwjglFolder, lwjglJars);
+    // DEBUG: dump the resolved classpath, and what's actually sitting in the
+    // top-level libs/ folder vs the version-specific lwjgl folder, so we can see
+    // if both LWJGL versions are landing on the classpath at once.
+    NSLog(@"[JavaLauncher][DEBUG] classpath = %@", classpath);
+    NSLog(@"[JavaLauncher][DEBUG] librariesPath = %@", librariesPath);
+    NSArray *topLevelJars = [fm contentsOfDirectoryAtPath:librariesPath error:nil];
+    NSLog(@"[JavaLauncher][DEBUG] top-level libs/ contents: %@", topLevelJars);
+    NSString *lwjglSubPath = [NSString stringWithFormat:@"%@/%@", librariesPath, lwjglFolder];
+    NSArray *lwjglJars = [fm contentsOfDirectoryAtPath:lwjglSubPath error:nil];
+    NSLog(@"[JavaLauncher][DEBUG] %@ contents: %@", lwjglFolder, lwjglJars);
 
-margv[++margc] = "-cp";
-margv[++margc] = classpath.UTF8String;
+    margv[++margc] = "-cp";
+    margv[++margc] = classpath.UTF8String;
+    margv[++margc] = "net.kdt.pojavlaunch.PojavLauncher";
 
     if (launchJar) {
         margv[++margc] = "-jar";
