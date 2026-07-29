@@ -401,12 +401,20 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     NSLog(@"[Init] Found JLI lib");
 
     NSString *classpath = [NSString stringWithFormat:@"%@/*:%@/%@/*", librariesPath, librariesPath, lwjglFolder];
-    if (launchJar) {
-        classpath = [classpath stringByAppendingFormat:@":%@", launchTarget];
-    }
-    margv[++margc] = "-cp";
-    margv[++margc] = classpath.UTF8String;
-    margv[++margc] = "net.kdt.pojavlaunch.PojavLauncher";
+if (launchJar) {
+    classpath = [classpath stringByAppendingFormat:@":%@", launchTarget];
+}
+
+NSLog(@"[JavaLauncher][DEBUG] classpath = %@", classpath);
+NSLog(@"[JavaLauncher][DEBUG] librariesPath = %@", librariesPath);
+NSArray *topLevelJars = [fm contentsOfDirectoryAtPath:librariesPath error:nil];
+NSLog(@"[JavaLauncher][DEBUG] top-level libs/ contents: %@", topLevelJars);
+NSString *lwjglSubPath = [NSString stringWithFormat:@"%@/%@", librariesPath, lwjglFolder];
+NSArray *lwjglJars = [fm contentsOfDirectoryAtPath:lwjglSubPath error:nil];
+NSLog(@"[JavaLauncher][DEBUG] %@ contents: %@", lwjglFolder, lwjglJars);
+
+margv[++margc] = "-cp";
+margv[++margc] = classpath.UTF8String;
 
     if (launchJar) {
         margv[++margc] = "-jar";
