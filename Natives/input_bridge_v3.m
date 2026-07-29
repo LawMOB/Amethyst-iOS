@@ -210,55 +210,33 @@ void registerOpenHandler(JNIEnv *env) {
 
 // JNI_OnLoad
 void JNI_OnLoadGLFW() {
-    JNIEnv *env = runtimeJNIEnvPtr;
-    if (!env) return;
-
-    // 1. Safe FindClass lookup
-    jclass localGlfwClass = (*env)->FindClass(env, "org/lwjgl/glfw/GLFW");
-    if ((*env)->ExceptionOccurred(env)) {
-        NSLog(@"[JNI_OnLoadGLFW] Failed to find class org/lwjgl/glfw/GLFW (pending exception cleared)");
-        (*env)->ExceptionClear(env);
+    jclass localGlfwClass = (*runtimeJNIEnvPtr)->FindClass(runtimeJNIEnvPtr, "org/lwjgl/glfw/GLFW");
+    if ((*runtimeJNIEnvPtr)->ExceptionOccurred(runtimeJNIEnvPtr)) {
+        (*runtimeJNIEnvPtr)->ExceptionDescribe(runtimeJNIEnvPtr);
+        (*runtimeJNIEnvPtr)->ExceptionClear(runtimeJNIEnvPtr);
+    }
+    if (localGlfwClass == NULL) {
+        NSLog(@"JNI_OnLoadGLFW: FindClass(org/lwjgl/glfw/GLFW) failed, aborting GLFW native init");
         return;
     }
+    vmGlfwClass = (*runtimeJNIEnvPtr)->NewGlobalRef(runtimeJNIEnvPtr, localGlfwClass);
 
-    if (!localGlfwClass) {
-        NSLog(@"[JNI_OnLoadGLFW] Class org/lwjgl/glfw/GLFW returned NULL");
+    method_internalWindowSizeChanged = (*runtimeJNIEnvPtr)->GetStaticMethodID(runtimeJNIEnvPtr, vmGlfwClass, "internalWindowSizeChanged", "(JII)V");
+    if (method_internalWindowSizeChanged == NULL) {
+        (*runtimeJNIEnvPtr)->ExceptionDescribe(runtimeJNIEnvPtr);
+        (*runtimeJNIEnvPtr)->ExceptionClear(runtimeJNIEnvPtr);
+        NSLog(@"JNI_OnLoadGLFW: GetStaticMethodID(internalWindowSizeChanged) failed");
+    }
+
+    jfieldID field_keyDownBuffer = (*runtimeJNIEnvPtr)->GetStaticFieldID(runtimeJNIEnvPtr, vmGlfwClass, "keyDownBuffer", "Ljava/nio/ByteBuffer;");
+    if (field_keyDownBuffer == NULL) {
+        (*runtimeJNIEnvPtr)->ExceptionDescribe(runtimeJNIEnvPtr);
+        (*runtimeJNIEnvPtr)->ExceptionClear(runtimeJNIEnvPtr);
+        NSLog(@"JNI_OnLoadGLFW: GetStaticFieldID(keyDownBuffer) failed, aborting GLFW native init");
         return;
     }
-
-    // 2. Create Global Reference safely
-    vmGlfwClass = (*env)->NewGlobalRef(env, localGlfwClass);
-    (*env)->DeleteLocalRef(env, localGlfwClass);
-
-    if (!vmGlfwClass) {
-        NSLog(@"[JNI_OnLoadGLFW] Failed to create global ref for org/lwjgl/glfw/GLFW");
-        return;
-    }
-
-    // 3. Guard static method lookup
-    method_internalWindowSizeChanged = (*env)->GetStaticMethodID(env, vmGlfwClass, "internalWindowSizeChanged", "(JII)V");
-    if ((*env)->ExceptionOccurred(env)) {
-        NSLog(@"[JNI_OnLoadGLFW] Could not find method internalWindowSizeChanged(JII)V");
-        (*env)->ExceptionClear(env);
-        method_internalWindowSizeChanged = NULL;
-    }
-
-    // 4. Guard static field lookup
-    jfieldID field_keyDownBuffer = (*env)->GetStaticFieldID(env, vmGlfwClass, "keyDownBuffer", "Ljava/nio/ByteBuffer;");
-    if ((*env)->ExceptionOccurred(env)) {
-        NSLog(@"[JNI_OnLoadGLFW] Could not find field keyDownBuffer");
-        (*env)->ExceptionClear(env);
-        keyDownBuffer = NULL;
-        return;
-    }
-
-    if (field_keyDownBuffer) {
-        jobject keyDownBufferJ = (*env)->GetStaticObjectField(env, vmGlfwClass, field_keyDownBuffer);
-        if (keyDownBufferJ) {
-            keyDownBuffer = (*env)->GetDirectBufferAddress(env, keyDownBufferJ);
-            (*env)->DeleteLocalRef(env, keyDownBufferJ);
-        }
-    }
+    jobject keyDownBufferJ = (*runtimeJNIEnvPtr)->GetStaticObjectField(runtimeJNIEnvPtr, vmGlfwClass, field_keyDownBuffer);
+    keyDownBuffer = (*runtimeJNIEnvPtr)->GetDirectBufferAddress(runtimeJNIEnvPtr, keyDownBufferJ);
 }
 
 jint JNI_OnLoad(JavaVM* vm, void* reserved) {

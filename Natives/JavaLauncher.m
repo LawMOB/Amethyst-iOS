@@ -173,10 +173,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             defaultJRETag = @"1_17_newer";
         }
 
-        // Use LWJGL 3.4.1 for 26.1+, 3.3.3 for 1.21.11-.
-       // Prefer launchTarget[@"lwjglVersion"] over guessing from the Minecraft version ID,
-      // which is unreliable for snapshots, modpacks, or custom JSONs.
-
+        // Determine LWJGL version based on explicitly recorded lwjglVersion or fallback rules
         NSString *lwjglVersionStr = launchTarget[@"lwjglVersion"];
         if ([lwjglVersionStr isKindOfClass:NSString.class] && lwjglVersionStr.length > 0) {
             NSArray<NSString *> *lwjglVersion = [lwjglVersionStr componentsSeparatedByString:@"."];
@@ -184,13 +181,23 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             int lwjglMinor = lwjglVersion.count > 1 ? [lwjglVersion[1] intValue] : 0;
             if (lwjglMajor > 3 || (lwjglMajor == 3 && lwjglMinor >= 4)) {
                 lwjglFolder = @"lwjgl-3.4.1";
+            } else {
+                lwjglFolder = @"lwjgl-3.3.3";
             }
         } else {
-            // Fallback: no lwjglVersion recorded (unexpected) - guess from the
-            // Minecraft version id like before.
-            int mcMajorVersion = [launchTarget[@"id"] intValue];
-            if (mcMajorVersion >= 26) {
-                lwjglFolder = @"lwjgl-3.4.1";
+            // Fallback: Parse Minecraft version ID cleanly (e.g. "1.21.11" or "26.1")
+            NSString *versionId = launchTarget[@"id"];
+            lwjglFolder = @"lwjgl-3.3.3"; // Default safety net for 1.x versions
+            
+            if ([versionId isKindOfClass:NSString.class]) {
+                NSArray<NSString *> *components = [versionId componentsSeparatedByString:@"."];
+                if (components.count > 0) {
+                    int major = [components[0] intValue];
+                    // If major version is >= 26 force 3.4.1
+                    if (major >= 26) {
+                        lwjglFolder = @"lwjgl-3.4.1";
+                    }
+                }
             }
         }
         NSLog(@"[JavaLauncher] Using LWJGL from %@", lwjglFolder);
@@ -199,7 +206,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         NSString *renderer = [PLProfiles resolveKeyForCurrentProfile:@"renderer"];
         NSLog(@"[JavaLauncher] RENDERER is set to %@\n", renderer);
         setenv("POJAV_RENDERER", renderer.UTF8String, 1);
-         if (isMobileGLRenderer(renderer.UTF8String)) {
+        if (isMobileGLRenderer(renderer.UTF8String)) {
             setenv("MOBILEGL_BACKEND_TYPE",
                 [renderer isEqualToString:@ RENDERER_NAME_MOBILEGL_GLES] ? "DirectGLES" : "DirectVulkan",
                 1);
