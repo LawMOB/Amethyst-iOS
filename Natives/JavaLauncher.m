@@ -19,6 +19,7 @@
 #import "ios_uikit_bridge.h"
 #import "JavaLauncher.h"
 #import "LauncherPreferences.h"
+#import "MinecraftOptionUtils.h"
 #import "PLLogOutputView.h"
 #import "PLProfiles.h"
 
@@ -224,6 +225,15 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             getenv("POJAV_HOME"), getPrefObject(@"general.game_directory"),
             [PLProfiles resolveKeyForCurrentProfile:@"gameDir"]]
             .stringByStandardizingPath;
+
+        // MinecraftOptionUtils.optionsPath was never being set anywhere, which
+        // meant the first call to -load (triggered via updateMCGuiScale, which
+        // fires from nativeSetGrabbing the moment the player grabs the mouse in
+        // a world) hit an assertion failure: 'optionsPath is not set'.
+        // windowWidth/windowHeight are already valid here since
+        // SurfaceViewController's updateSavedResolution runs synchronously in
+        // viewDidLoad, before launchMinecraft dispatches to this background queue.
+        [MinecraftOptionUtils setupOptionsAtGameDir:gameDir];
     } else {
         defaultJRETag = @"execute_jar";
         gameDir = @(getenv("POJAV_GAME_DIR"));
