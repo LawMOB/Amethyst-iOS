@@ -1139,16 +1139,15 @@ public class GLFW
         return value != null ? value : 0;
     }
 
-    public static void glfwSetInputMode(@NativeType("GLFWwindow *") long window, int mode, int value) {
-        if (mode == GLFW_CURSOR) {
-            switch (value) {
-                case GLFW_CURSOR_DISABLED:
-                    net.kdt.pojavlaunch.uikit.UIKit.updateMCGuiScale();
-                    CallbackBridge.nativeSetGrabbing(true);
-                    break;
-                default: CallbackBridge.nativeSetGrabbing(false);
-            }
-        }
+    if (mode == GLFW_CURSOR) {
+    switch (value) {
+        case GLFW_CURSOR_DISABLED:
+            CallbackBridge.nativeSetGrabbing(true);
+            break;
+        default:
+            CallbackBridge.nativeSetGrabbing(false);
+    }
+}
 
         internalGetWindow(window).inputModes.put(mode, value);
     }
