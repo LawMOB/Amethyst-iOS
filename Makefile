@@ -35,7 +35,6 @@ ifeq (,$(COMMIT))
 BRANCH := unknown
 endif
 
-
 # Team IDs and provisioning profile for the codesign function
 # Default to -1 for check
 # Currently requires a paid Apple Developer account, will fix later
@@ -48,7 +47,6 @@ CMAKE_BUILD_TYPE := Release
 else
 CMAKE_BUILD_TYPE := Debug
 endif
-
 
 # Distinguish iOS from macOS, and *OS from others
 ifeq ($(DETECTPLAT),Darwin)
@@ -132,9 +130,6 @@ METHOD_DIRCHECK   = \
 	fi
 	
 # Function to change the platform on Mach-O files.
-# iOS = 2, tvOS = 3, iOS Simulator = 7, tvOS Simulator = 8, visionOS = 11, visionOS Simulator = 12
-# https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h
-# TODO: Change Info.plist for visionOS 1.0
 METHOD_CHANGE_PLAT = \
 	if [ '$(1)' != '11' ] && [ '$(1)' != '12' ]; then \
 		vtool -arch arm64 -set-build-version $(1) 14.0 16.0 -replace -output $(2) $(2); \
@@ -278,7 +273,6 @@ native: dep_mg
 		..
 
 	cmake --build $(WORKINGDIR) --config $(CMAKE_BUILD_TYPE) -j$(JOBS)
-	#	--target awt_headless awt_xawt libOSMesaOverride.dylib tinygl4angle AngelAuraAmethyst
 	rm $(WORKINGDIR)/libawt_headless.dylib
 	echo '[Amethyst v$(VERSION)] native - end'
 
@@ -377,8 +371,6 @@ dep_mobilegl:
 	fi
 	install_name_tool -add_rpath @loader_path $(WORKINGDIR)/mobilegl/libMobileGL.dylib
 	cp $(WORKINGDIR)/mobilegl/libMobileGL.dylib $(WORKINGDIR)/libMobileGL.dylib
-	cp $(WORKINGDIR)/mobilegl/libMobileGL.dylib $(WORKINGDIR)/libMobileGL-gles.dylib
-	install_name_tool -id @rpath/libMobileGL-gles.dylib $(WORKINGDIR)/libMobileGL-gles.dylib
 	echo '[Amethyst v$(VERSION)] dep_mobilegl - end'
 
 assets:
