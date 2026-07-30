@@ -374,6 +374,11 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         margv[++margc] = "--add-exports=java.desktop/sun.font=ALL-UNNAMED";
         margv[++margc] = "--add-exports=java.base/sun.security.action=ALL-UNNAMED";
         margv[++margc] = "--add-opens=java.base/java.util=ALL-UNNAMED";
+        // LWJGL's MemoryUtil prefers Unsafe, then reflection into java.nio.DirectByteBuffer,
+        // and only falls back to a native JNI call (JNINativeInterface.nNewDirectByteBuffer)
+        // as a last resort - which isn't implemented in our vendored liblwjgl.dylib. Without
+        // this add-opens, the reflection fallback is blocked by module encapsulation, so
+        // MemoryUtil falls through to that broken native path and crashes on LWJGL 3.4.1.
         margv[++margc] = "--add-opens=java.base/java.nio=ALL-UNNAMED";
         margv[++margc] = "--add-opens=java.desktop/java.awt=ALL-UNNAMED";
         margv[++margc] = "--add-opens=java.desktop/sun.font=ALL-UNNAMED";
@@ -424,7 +429,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
         if ([jarFile hasPrefix:@"lwjgl-3."]) continue; // skip both versioned lwjgl jars here
         [classpath appendFormat:@"%@/%@:", librariesPath, jarFile];
     }
-    [classpath appendFormat:@"%@/%@.jar", librariesPath, lwjglFolder];
+    [classpath appendFormat:@"%@/%@/*", librariesPath, lwjglFolder];
     if (launchJar) {
         [classpath appendFormat:@":%@", launchTarget];
     }
