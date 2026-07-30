@@ -151,6 +151,29 @@ void hackFix18LWJGL(void *addr) {
     mprotect(addr, PAGE_SIZE, PROT_READ | PROT_EXEC);
 }
 
+JNIEXPORT jobject JNICALL
+native_JNINativeInterface_nNewDirectByteBuffer(JNIEnv *env, jclass clazz, jlong address, jlong capacity) {
+    return (*env)->NewDirectByteBuffer(env, (void *)(intptr_t)address, capacity);
+}
+
+void registerJNINativeInterfaceNatives(JNIEnv *env) {
+    jclass cls = (*env)->FindClass(env, "org/lwjgl/system/jni/JNINativeInterface");
+    if ((*env)->ExceptionOccurred(env)) {
+        (*env)->ExceptionClear(env);
+        NSLog(@"registerJNINativeInterfaceNatives: FindClass(org/lwjgl/system/jni/JNINativeInterface) failed, skipping");
+        return;
+    }
+    JNINativeMethod methods[] = {
+        {"nNewDirectByteBuffer", "(JJ)Ljava/nio/ByteBuffer;", (void *)&native_JNINativeInterface_nNewDirectByteBuffer}
+    };
+    (*env)->RegisterNatives(env, cls, methods, 1);
+    if ((*env)->ExceptionOccurred(env)) {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+        NSLog(@"registerJNINativeInterfaceNatives: RegisterNatives failed");
+    }
+}
+
 void registerOpenHandler(JNIEnv *env) {
     jclass cls;
 
@@ -245,6 +268,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     JNIEnv *env;
     (*runtimeJavaVMPtr)->GetEnv(runtimeJavaVMPtr, (void **)&env, JNI_VERSION_1_4);
     registerOpenHandler(env);
+    registerJNINativeInterfaceNatives(env);
     if (!getenv("POJAV_SKIP_JNI_GLFW")) {
         runtimeJNIEnvPtr = env;
         JNI_OnLoadGLFW();
