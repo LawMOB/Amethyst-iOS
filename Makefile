@@ -396,7 +396,7 @@ assets:
 	fi
 	echo '[Amethyst v$(VERSION)] assets - end'
 
-payload: native dep_mg java jre assets
+payload: native dep_mg dep_mobilegl java jre assets
 	echo '[Amethyst v$(VERSION)] payload - start'
 	$(call METHOD_DIRCHECK,$(WORKINGDIR)/AngelAuraAmethyst.app/libs)
 	$(call METHOD_DIRCHECK,$(WORKINGDIR)/AngelAuraAmethyst.app/libs_caciocavallo)
