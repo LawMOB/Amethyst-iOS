@@ -298,6 +298,10 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     margv[++margc] = [NSString stringWithFormat:@"-DUIScreen.maximumFramesPerSecond=%d", (int)UIScreen.mainScreen.maximumFramesPerSecond].UTF8String;
     margv[++margc] = "-Dorg.lwjgl.glfw.checkThread0=false";
     margv[++margc] = "-Dorg.lwjgl.system.allocator=system";
+    // Our bundled SPIRV-Cross dylib keeps its real upstream/versioned filename
+    // rather than the plain "libspirv-cross.dylib" LWJGL's Spvc class defaults
+    // to, so point it at the actual file explicitly.
+    margv[++margc] = "-Dorg.lwjgl.spvc.libname=libspirv-cross-c-shared.0.68.0.dylib";
     //margv[++margc] = "-Dorg.lwjgl.util.NoChecks=true";
     margv[++margc] = "-Dlog4j2.formatMsgNoLookups=true";
 
