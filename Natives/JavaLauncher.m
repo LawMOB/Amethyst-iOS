@@ -226,13 +226,6 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             [PLProfiles resolveKeyForCurrentProfile:@"gameDir"]]
             .stringByStandardizingPath;
 
-        // MinecraftOptionUtils.optionsPath was never being set anywhere, which
-        // meant the first call to -load (triggered via updateMCGuiScale, which
-        // fires from nativeSetGrabbing the moment the player grabs the mouse in
-        // a world) hit an assertion failure: 'optionsPath is not set'.
-        // windowWidth/windowHeight are already valid here since
-        // SurfaceViewController's updateSavedResolution runs synchronously in
-        // viewDidLoad, before launchMinecraft dispatches to this background queue.
         [MinecraftOptionUtils setupOptionsAtGameDir:gameDir];
     } else {
         defaultJRETag = @"execute_jar";
@@ -298,12 +291,8 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     margv[++margc] = [NSString stringWithFormat:@"-DUIScreen.maximumFramesPerSecond=%d", (int)UIScreen.mainScreen.maximumFramesPerSecond].UTF8String;
     margv[++margc] = "-Dorg.lwjgl.glfw.checkThread0=false";
     margv[++margc] = "-Dorg.lwjgl.system.allocator=system";
-    // Our bundled SPIRV-Cross dylib keeps its real upstream/versioned filename
-    // rather than the plain "libspirv-cross.dylib" LWJGL's Spvc class defaults
-    // to. org.lwjgl.spvc.libname auto-wraps its value with "lib" + ... + ".dylib",
-    // so pass only the bare middle part (not the full filename, unlike opengl.libname).
     margv[++margc] = "-Dorg.lwjgl.spvc.libname=spirv-cross-c-shared.0.68.0";
-    //margv[++margc] = "-Dorg.lwjgl.util.NoChecks=true";
+    margv[++margc] = "-Dorg.lwjgl.util.NoChecks=true";
     margv[++margc] = "-Dlog4j2.formatMsgNoLookups=true";
 
     // Preset OpenGL libname
@@ -313,10 +302,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             // workaround only applies to 1.20.2+
             glLibName = RENDERER_NAME_MTL_ANGLE;
         }
-        // org.lwjgl.opengl.libname auto-wraps its value with "lib" + ... + ".dylib"
-        // (same behavior as org.lwjgl.spvc.libname), so strip those off a
-        // full-filename-style renderer value like "libMobileGL-gles.dylib"
-        // before passing it through, or it resolves to a doubled-up filename.
+    
         NSString *glLibNameStr = @(glLibName);
         if ([glLibNameStr hasPrefix:@"lib"]) {
             glLibNameStr = [glLibNameStr substringFromIndex:3];
@@ -432,12 +418,6 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     init_loadCustomJvmFlags(&margc, (const char **)margv);
     NSLog(@"[Init] Found JLI lib");
 
-    // Build the classpath explicitly: every jar in libs/ EXCEPT the version-specific
-    // lwjgl-3.x.x.jar files, then append only the single lwjgl jar matching the
-    // version we actually selected. Both lwjgl jars are copied flat into libs/ (no
-    // real libs/lwjgl-3.3.3/ subfolder exists - confirmed via the debug log below),
-    // so a plain libs/* wildcard was always grabbing both versions at once
-    // regardless of lwjglFolder.
     NSMutableString *classpath = [NSMutableString string];
     NSArray *libJars = [fm contentsOfDirectoryAtPath:librariesPath error:nil];
     for (NSString *jarFile in libJars) {
@@ -451,8 +431,7 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
     }
 
     // DEBUG: dump the resolved classpath, and what's actually sitting in the
-    // top-level libs/ folder vs the version-specific lwjgl folder, so we can see
-    // if both LWJGL versions are landing on the classpath at once.
+    // top-level libs
     NSLog(@"[JavaLauncher][DEBUG] classpath = %@", classpath);
     NSLog(@"[JavaLauncher][DEBUG] librariesPath = %@", librariesPath);
     NSArray *topLevelJars = [fm contentsOfDirectoryAtPath:librariesPath error:nil];
