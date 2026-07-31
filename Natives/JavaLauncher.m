@@ -313,7 +313,18 @@ int launchJVM(NSString *username, id launchTarget, int width, int height, int mi
             // workaround only applies to 1.20.2+
             glLibName = RENDERER_NAME_MTL_ANGLE;
         }
-        margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.opengl.libname=%s", glLibName].UTF8String;
+        // org.lwjgl.opengl.libname auto-wraps its value with "lib" + ... + ".dylib"
+        // (same behavior as org.lwjgl.spvc.libname), so strip those off a
+        // full-filename-style renderer value like "libMobileGL-gles.dylib"
+        // before passing it through, or it resolves to a doubled-up filename.
+        NSString *glLibNameStr = @(glLibName);
+        if ([glLibNameStr hasPrefix:@"lib"]) {
+            glLibNameStr = [glLibNameStr substringFromIndex:3];
+        }
+        if ([glLibNameStr hasSuffix:@".dylib"]) {
+            glLibNameStr = [glLibNameStr substringToIndex:glLibNameStr.length - 6];
+        }
+        margv[++margc] = [NSString stringWithFormat:@"-Dorg.lwjgl.opengl.libname=%@", glLibNameStr].UTF8String;
     }
 
     NSString *librariesPath = [NSString stringWithFormat:@"%@/libs", NSBundle.mainBundle.bundlePath];
