@@ -50,12 +50,23 @@ $(OUTPUTDIR)/launcher.jar: $(CLASSES) check_empty_classes
 
 $(OUTPUTDIR)/patchsvc.jar: $(CLASSES)
 	@set -e
-	@mv $(basename $@)/de/maxhenkel/lame4j/Mp3Decoder.class $(basename $@)/de/maxhenkel/lame4j/Mp3Decoder.class.patch
-	@mv $(basename $@)/de/maxhenkel/lame4j/Mp3Encoder.class $(basename $@)/de/maxhenkel/lame4j/Mp3Encoder.class.patch
-	@mv $(basename $@)/de/maxhenkel/opus4j/OpusDecoder.class $(basename $@)/de/maxhenkel/opus4j/OpusDecoder.class.patch
-	@mv $(basename $@)/de/maxhenkel/opus4j/OpusEncoder.class $(basename $@)/de/maxhenkel/opus4j/OpusEncoder.class.patch
-	@mv $(basename $@)/de/maxhenkel/rnnoise4j/Denoiser.class $(basename $@)/de/maxhenkel/rnnoise4j/Denoiser.class.patch
-	@mv $(basename $@)/de/maxhenkel/speex4j/AutomaticGainControl.class $(basename $@)/de/maxhenkel/speex4j/AutomaticGainControl.class.patch
+	# Ensure staging directory exists
+	@mkdir -p $(basename $@)
+	# Ensure package directories exist under staging dir
+	@mkdir -p $(basename $@)/de/maxhenkel
+	@mkdir -p $(basename $@)/de/maxhenkel/lame4j
+	@mkdir -p $(basename $@)/de/maxhenkel/opus4j
+	@mkdir -p $(basename $@)/de/maxhenkel/rnnoise4j
+	@mkdir -p $(basename $@)/de/maxhenkel/speex4j
+	# Copy compiled classes for de/maxhenkel into the staging dir (if present)
+	@cp -R $(OUTPUTDIR)/classes/de/maxhenkel/* $(basename $@)/de/maxhenkel/ 2>/dev/null || true
+	# Now perform the patch renames (rename will no-op if file missing)
+	@mv $(basename $@)/de/maxhenkel/lame4j/Mp3Decoder.class $(basename $@)/de/maxhenkel/lame4j/Mp3Decoder.class.patch 2>/dev/null || true
+	@mv $(basename $@)/de/maxhenkel/lame4j/Mp3Encoder.class $(basename $@)/de/maxhenkel/lame4j/Mp3Encoder.class.patch 2>/dev/null || true
+	@mv $(basename $@)/de/maxhenkel/opus4j/OpusDecoder.class $(basename $@)/de/maxhenkel/opus4j/OpusDecoder.class.patch 2>/dev/null || true
+	@mv $(basename $@)/de/maxhenkel/opus4j/OpusEncoder.class $(basename $@)/de/maxhenkel/opus4j/OpusEncoder.class.patch 2>/dev/null || true
+	@mv $(basename $@)/de/maxhenkel/rnnoise4j/Denoiser.class $(basename $@)/de/maxhenkel/rnnoise4j/Denoiser.class.patch 2>/dev/null || true
+	@mv $(basename $@)/de/maxhenkel/speex4j/AutomaticGainControl.class $(basename $@)/de/maxhenkel/speex4j/AutomaticGainControl.class.patch 2>/dev/null || true
 	@rm -rf $(basename $@)/de/maxhenkel/*/*.class
 	@echo "Creating $@"
 	@$(BOOTJDK)/jar -cfm $@ $(SOURCEDIR)/patchsvc.txt -C $(basename $@) .
@@ -80,7 +91,11 @@ $(OUTPUTDIR)/lwjgl-3.4.1.jar: $(CLASSES) check_empty_classes
 
 $(OUTPUTDIR)/patchjna_agent.jar: $(CLASSES)
 	@set -e
-	@mv $(basename $@)/com/sun/jna/Platform.class $(basename $@)/com/sun/jna/Platform.class.patch
+	@mkdir -p $(basename $@)
+	@mkdir -p $(basename $@)/com/sun/jna
+	# Copy compiled classes for com/sun/jna into the staging dir (if present)
+	@cp -R $(OUTPUTDIR)/classes/com/sun/jna/* $(basename $@)/com/sun/jna/ 2>/dev/null || true
+	@mv $(basename $@)/com/sun/jna/Platform.class $(basename $@)/com/sun/jna/Platform.class.patch 2>/dev/null || true
 	@echo "Creating $@"
 	@$(BOOTJDK)/jar -cfm $@ $(SOURCEDIR)/patchjna_agent.txt -C $(basename $@) .
 
