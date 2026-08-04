@@ -214,8 +214,17 @@
             @{@"key": @"allow_microphone",
               @"hasDetail": @YES,
               @"icon": @"mic",
-              @"type": self.typeSwitch
+              @"type": self.typeSwitch,
+              @"requestReload": @YES
             },
+            @{@"key": @"fix_simple_voice_chat_mod",
+              @"hasDetail": @YES,
+              @"icon": @"mic.circle",
+              @"type": self.typeSwitch,
+              @"enableCondition": ^BOOL() {
+                    return getPrefBool(@"video.allow_microphone") && whenNotInGame();
+              }
+            }
         ], @[
             // Control settings
             @{@"icon": @"gamecontroller"},
@@ -431,7 +440,7 @@
 
 - (NSString *)tableView:(UITableView *)tableView titleForFooterInSection:(NSInteger)section {
     if (section == 0) { // Add to general section
-        return [NSString stringWithFormat:@"Angel Aura Amethyst %@-%s (%s/%s)\n%@ on %@ (%s)\nPID: %d",
+        return [NSString stringWithFormat:@"Hynis %@-%s (%s/%s)\n%@ on %@ (%s)\nPID: %d",
             NSBundle.mainBundle.infoDictionary[@"CFBundleShortVersionString"],
             CONFIG_TYPE, CONFIG_BRANCH, CONFIG_COMMIT,
             UIDevice.currentDevice.completeOSVersion, [HostManager GetModelName], getenv("POJAV_DETECTEDINST"), getpid()];

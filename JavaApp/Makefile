@@ -41,6 +41,18 @@ $(OUTPUTDIR)/launcher.jar: $(CLASSES) check_empty_classes
 	@echo "Creating $@"
 	@$(BOOTJDK)/jar -cf $@ -C $(basename $@) .
 
+	$(OUTPUTDIR)/patchsvc.jar: $(CLASSES)
+	@set -e
+	@mv $(basename $@)/de/maxhenkel/lame4j/Mp3Decoder.class $(basename $@)/de/maxhenkel/lame4j/Mp3Decoder.class.patch
+	@mv $(basename $@)/de/maxhenkel/lame4j/Mp3Encoder.class $(basename $@)/de/maxhenkel/lame4j/Mp3Encoder.class.patch
+	@mv $(basename $@)/de/maxhenkel/opus4j/OpusDecoder.class $(basename $@)/de/maxhenkel/opus4j/OpusDecoder.class.patch
+	@mv $(basename $@)/de/maxhenkel/opus4j/OpusEncoder.class $(basename $@)/de/maxhenkel/opus4j/OpusEncoder.class.patch
+	@mv $(basename $@)/de/maxhenkel/rnnoise4j/Denoiser.class $(basename $@)/de/maxhenkel/rnnoise4j/Denoiser.class.patch
+	@mv $(basename $@)/de/maxhenkel/speex4j/AutomaticGainControl.class $(basename $@)/de/maxhenkel/speex4j/AutomaticGainControl.class.patch
+	@rm -rf $(basename $@)/de/maxhenkel/*/*.class
+	@echo "Creating $@"
+	@$(BOOTJDK)/jar -cfm $@ $(SOURCEDIR)/patchsvc.txt -C $(basename $@) 
+
 # One jar per LWJGL version - each built from only its own vendor folder,
 # so nothing ambiguous ends up on the runtime classpath. Patched classes from
 # src/lwjgl (compiled to $(OUTPUTDIR)/lwjgl) are then overlaid on top so our
