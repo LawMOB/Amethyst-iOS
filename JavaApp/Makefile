@@ -34,7 +34,12 @@ $(CLASSES): $(OUTPUTDIR)/%.class: $(SOURCEDIR)/%.java
 	@mkdir -p $(dir $@)
 	@echo "Compiling $<"
 	@$(BOOTJDK)/javac $(JCFLAGS) -d $(OUTPUTDIR)/classes $<
-	@cp $(@:$(OUTPUTDIR)/$(TARGET)/%.class=$(OUTPUTDIR)/classes/%*.class) $(dir $@)/
+	# Copy the main class and any inner-class files produced by javac into the target dir
+	@CLASSPATH=$(OUTPUTDIR)/classes/$(patsubst $(SOURCEDIR)/%.java,%.class,$<); \
+	if [ -n "$$CLASSPATH" ]; then \
+		cp $$CLASSPATH%.class 2>/dev/null || true; \
+		cp $${CLASSPATH%.class}*.class $(dir $@)/ 2>/dev/null || true; \
+	fi
 
 $(OUTPUTDIR)/launcher.jar: $(CLASSES) check_empty_classes
 	@set -e
