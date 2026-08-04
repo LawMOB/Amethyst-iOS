@@ -117,5 +117,5 @@ Amethyst is amazing, and surprisingly stable, and it wouldn't be this way withou
 - [AltKit](https://github.com/rileytestut/AltKit)
 - [UnzipKit](https://github.com/abbeycode/UnzipKit): [BSD-2 License](https://github.com/abbeycode/UnzipKit/blob/master/LICENSE).
 - [DyldDeNeuralyzer](https://github.com/xpn/DyldDeNeuralyzer): bypasses Library Validation for loading external runtime
-- [Hynis-JE](https://github.com/congcq/Hynis-JE): [GNU License](https://github.com/congcq/Hynis-JE/blob/main/LICENSE)
+- [Hynis-JE](https://github.com/congcq/Hynis-JE): [GNU GPLv3 License](https://github.com/congcq/Hynis-JE/blob/main/LICENSE)
 - Thanks to [MCHeads](https://mc-heads.net) for providing Minecraft avatars.
