@@ -43,7 +43,7 @@ $(CLASSES): $(OUTPUTDIR)/%.class: $(SOURCEDIR)/%.java
 	# (and PojavClassLoader specifically) depends on, and a silently-swallowed failure here
 	# is exactly what produced a jar that built "successfully" but was missing a class at
 	# runtime.
-    @set -e; \
+	@set -e; \
 	CLASSNAME=$$(basename "$<" .java); \
 	find $(OUTPUTDIR)/classes -name "$$CLASSNAME*.class" -exec cp {} $(dir $@) \;
 
