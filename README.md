@@ -39,7 +39,7 @@ At the minimum, you'll need one of the following devices on **iOS 14.0** and lat
 - iPod touch (7th generation)
 
 However, we recommend one of the following devices on **iOS 14.0** and later:
-- iPhone XS and later, excluding iPhone XR and iPhone SE (2nd generation)
+- iPhone 11 and later, excluding the iPhone SE (2nd generation)
 - iPad (10th generation) and later
 - iPad Air (4th generation) and later
 - iPad mini (6th generation) and later
@@ -58,28 +58,23 @@ If you cannot, [AltStore](https://altstore.io) and [SideStore](https://sidestore
 - Jailbreaks also benefit from permenant signing, autoJIT, and increased memory limits. However, we do not recommend them on devices intended for regular use.
 
 ### Installing Amethyst
-#### Release build (TrollStore)
-1. Download an IPA of Amethyst in [Releases](https://github.com/AngelAuraMC/Amethyst-iOS/releases).
-2. Open the package in TrollStore using the share menu.
-
-#### Release build (AltStore/SideStore trusted source)
-These builds will be available soon, stay tuned.
+#### Release build 
+1. Download an IPA of Amethyst in [Releases](https://github.com/Taylen-chud/Amethyst-iOS/releases)
+2. Open the package in SideStore or Trollstore 
 
 #### Nightly builds
 *These builds can contain game-breaking bugs. Use with caution.*
-1. Download an IPA build of Amethyst in the [Actions tab](https://github.com/AngelAuraMC/Amethyst-iOS/actions).
-2. Open the downloaded IPA in your sideloading app to install.
+1. Download an IPA or TIPA build of Amethyst in the [Actions tab](https://github.com/Taylen-chud/Amethyst-iOS/actions)
+2. Open the downloaded file in your sideloading app to install.
 
-#### Nightly builds (AltStore/SideStore trusted sources)
-These builds will be available soon, stay tuned.
 
 ### Enabling JIT
 Amethyst makes use of **just-in-time compilation**, or JIT, to provide usable speeds for the end user. JIT is not supported on iOS without the application being debugged, so workarounds are required to enable it. You can use this chart to determine the best solution for you and your setup.
-| Application         | AltStore | SideStore | StikDebug | TrollStore | Jitterbug          | Jailbroken |
-|---------------------|----------|-----------|-----------|------------|--------------------|------------|
-| Requires ext-device | Yes      | Yes (#)   | Yes (#)   | No         | If VPN unavailable | No         |
-| Requires Wi-Fi      | Yes      | Yes (#)   | Yes (#)   | No         | Yes                | No         |
-| Auto enabled        | Yes (*)  | No        | Yes       | Yes        | No                 | Yes        |
+| Application         | AltStore | SideStore | StikDebug | TrollStore | Jailbroken |
+|---------------------|----------|-----------|-----------|------------|------------|
+| Requires ext-device | Yes      | Yes (#)   | Yes (#)   | No         | No         |
+| Requires Wi-Fi      | Yes      | Yes (#)   | Yes (#)   | No         | No         |
+| Auto enabled        | Yes (*)  | No        | Yes       | Yes        | Yes        |
 
 (*) AltServer running on the local network is required.
 (#) Only the first time.
@@ -117,4 +112,5 @@ Amethyst is amazing, and surprisingly stable, and it wouldn't be this way withou
 - [AltKit](https://github.com/rileytestut/AltKit)
 - [UnzipKit](https://github.com/abbeycode/UnzipKit): [BSD-2 License](https://github.com/abbeycode/UnzipKit/blob/master/LICENSE).
 - [DyldDeNeuralyzer](https://github.com/xpn/DyldDeNeuralyzer): bypasses Library Validation for loading external runtime
+- [Hynis-JE](https://github.com/congcq/Hynis-JE): [GNU GPLv3 License](https://github.com/congcq/Hynis-JE/blob/main/LICENSE)
 - Thanks to [MCHeads](https://mc-heads.net) for providing Minecraft avatars.

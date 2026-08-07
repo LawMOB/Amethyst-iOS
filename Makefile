@@ -9,7 +9,7 @@ OUTPUTDIR   := $(SOURCEDIR)/artifacts
 WORKINGDIR  := $(SOURCEDIR)/Natives/build
 DETECTPLAT  := $(shell uname -s)
 DETECTARCH  := $(shell uname -m)
-VERSION     := 1.0.0
+VERSION     := 1.1.0
 BRANCH      := $(shell git branch --show-current)
 COMMIT      := $(shell git log --oneline | sed '2,10000000d' | cut -b 1-7)
 PLATFORM    ?= 2
@@ -162,10 +162,14 @@ METHOD_PACKAGE = \
 # Function to download and unpack Java runtimes.
 METHOD_JAVA_UNPACK = \
 	cd $(SOURCEDIR)/depends; \
-	if [ ! -f "java-$(1)-openjdk/release" ] && [ ! -f "$(ls jre$(1)-*.tar.xz)" ]; then \
+	if [ ! -f "java-$(1)-openjdk/release" ] && [ -z "$$(ls jre$(1)-*.tar.xz 2>/dev/null)" ]; then \
 		if [ "$(RUNNER)" != "1" ]; then \
-			wget '$(2)' -q --show-progress; \
-			unzip jre*-ios-aarch64.zip && rm jre*-ios-aarch64.zip; \
+			echo "Downloading JRE $(1) from $(2)..."; \
+			if ! wget '$(2)' -nv --show-progress -O jre$(1)-ios-aarch64.zip; then \
+				echo "ERROR: Failed to download JRE $(1) from $(2) (network failure, DNS issue, or the asset is unavailable)."; \
+				exit 1; \
+			fi; \
+			unzip jre$(1)-ios-aarch64.zip && rm jre$(1)-ios-aarch64.zip; \
 		fi; \
 		mkdir -p java-$(1)-openjdk; \
 		tar xvf jre$(1)-*.tar.xz -C java-$(1)-openjdk; \
@@ -295,7 +299,7 @@ jre: native
 	$(call METHOD_JAVA_UNPACK,17,'https://assets.angelauramc.dev/openjdk/ios-arm64/jre17-ios-aarch64.zip'); \
 	$(call METHOD_JAVA_UNPACK,21,'https://assets.angelauramc.dev/openjdk/ios-arm64/jre21-ios-aarch64.zip'); \
 	$(call METHOD_JAVA_UNPACK,25,'https://assets.angelauramc.dev/openjdk/ios-arm64/jre25-ios-aarch64.zip'); \
-	if [ -f "$(ls jre*.tar.xz)" ]; then rm $(SOURCEDIR)/depends/jre*.tar.xz; fi; \
+	if [ -n "$$(ls jre*.tar.xz 2>/dev/null)" ]; then rm $(SOURCEDIR)/depends/jre*.tar.xz; fi; \
 	cd $(SOURCEDIR); \
 	rm -rf $(SOURCEDIR)/depends/java-*-openjdk/{ASSEMBLY_EXCEPTION,bin,include,jre,legal,LICENSE,man,THIRD_PARTY_README,lib/{ct.sym,jspawnhelper,libjsig.dylib,src.zip,tools.jar}}; \
 	$(call METHOD_DIRCHECK,$(OUTPUTDIR)/java_runtimes); \
